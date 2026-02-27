@@ -5,22 +5,28 @@
 package com.mycompany.polydeck.engine.model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.ManyToMany;
+import javax.persistence.*;
 
-/**
- *
- * @author alumnet
- */
-
+@Entity
 public class Mazo {
-    Long id;
-    String nom;
-    LocalDate dataCreacio;
+
+    @Id 
+    @GeneratedValue
+    private Long id;
     
-    @ManyToMany
-    List<Carta> cartes;
+    private String nom;
+    private LocalDate dataCreacio;
     
-    // Falta poner configuracion de CascadeType... preguntar a la IA
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    private List<Carta> cartes = new ArrayList<>();
     
+    public Mazo() {}
+
+    public Mazo(String nom, LocalDate dataCreacio) {
+        this.nom = nom;
+        this.dataCreacio = dataCreacio;
+    }
+
 }

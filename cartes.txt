@@ -1,0 +1,16 @@
+# TIPUS | NOM | DESCRIPCIO | RARESA | COST_MANA (Blau,Negre,Vermell,Verd,Blanc,Incolor) | ATRIBUTS_ESPECIFICS
+CRIATURA|Drac de Foc|Un drac majestuós que crema tot al seu pas.|RARA|0,0,2,0,0,4|5|5|Drac|true
+CRIATURA|Cavaller de l'Alba|Protector del regne amb armadura de plata.|COMUNA|0,0,0,0,2,1|2|2|Humà|false
+CRIATURA|Guerrer de la Selva|Coneix cada racó del bosc primigeni.|COMUNA|0,0,0,2,0,1|3|2|Elf|false
+CRIATURA|Espectre de la Nit|Apareix quan la lluna és plena i s'emporta les ànimes.|MITICA|0,3,0,0,0,2|4|3|Espectre|true
+CRIATURA|Cranc de Vidre|Una criatura marina amb una closca transparent.|INFREQÜENT|2,0,0,0,0,2|1|5|Cranc|false
+TERRA|Muntanya Volcànica|Una muntanya que fumeja constantment.|COMUNA|VERMELL|true
+TERRA|Illa de Cristall|Aigües tan pures que semblen miralls.|COMUNA|BLAU|true
+TERRA|Pantà Corrupte|Aigües estancades plenes de malediccions.|COMUNA|NEGRE|true
+TERRA|Bosc Ancestral|Arbres que han vist néixer el món.|COMUNA|VERD|true
+TERRA|Plana Daurada|Camps infinits de blat sota el sol.|COMUNA|BLANC|true
+ENCANTERI|Bola de Foc|Explosió massiva que danya a l'enemic.|RARA|0,0,1,0,0,2|Global|false
+ENCANTERI|Contrahechizo|Anul·la la màgia de l'adversari al moment.|INFREQÜENT|2,0,0,0,0,0|Aura|true
+ENCANTERI|Creixement Gegant|La criatura objectiu guanya força temporalment.|COMUNA|0,0,0,1,0,0|Aura|true
+ENCANTERI|Judici Diví|Elimina totes les amenaces del camp.|MITICA|0,0,0,0,3,3|Global|false
+ENCANTERI|Llum de Curació|Restaura la salut del jugador.|COMUNA|0,0,0,0,1,1|Maledicció|true

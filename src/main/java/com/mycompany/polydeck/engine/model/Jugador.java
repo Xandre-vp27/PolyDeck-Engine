@@ -4,24 +4,32 @@
  */
 package com.mycompany.polydeck.engine.model;
 
-import java.util.List;
-import javax.persistence.ManyToMany;
-import javax.persistence.OneToMany;
 
-/**
- *
- * @author alumnet
- */
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.*;
+
+@Entity
 public class Jugador {
-    Long id;
-    String nick;
-    int nivell;
+
+    @Id 
+    @GeneratedValue
+    private Long id;
     
-    @OneToMany
-    List<Mazo> mazos;
+    private String nick;
+    private int nivell;
     
-    // Cascade Type.ALL falta por añadir
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Mazo> mazos = new ArrayList<>();
     
     @ManyToMany
-    List<Carta> coleccion;
+    private List<Carta> coleccion = new ArrayList<>();
+
+    public Jugador() {}
+
+    public Jugador(String nick, int nivell) {
+        this.nick = nick;
+        this.nivell = nivell;
+    }
+
 }

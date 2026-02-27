@@ -4,22 +4,22 @@
  */
 package com.mycompany.polydeck.engine.model;
 
-import com.polydeck.model.Color;
 import com.polydeck.model.Raresa;
 import javax.persistence.Entity;
 
 @Entity
-public class Terra extends Carta {
-    Color produccio;
-    
-    boolean esBasica;
-    
-    public Terra() {}
+public class Encanteri extends Carta {
+    String tipus;
+    boolean esInstantani;
 
-    public Terra(String nom, String descripcio, String edicio, Raresa raresa, CostMana cost, 
-                 Color produccio, boolean esBasica) {
-        super(nom, descripcio, edicio, raresa, cost);
-        this.produccio = produccio;
-        this.esBasica = esBasica;
+    public Encanteri() {
     }
+
+    public Encanteri(String nom, String descripcio, String edicio, Raresa raresa, CostMana cost, String tipus, boolean esInstantani) {
+        super(nom, descripcio, edicio, raresa, cost);
+        this.tipus = tipus;
+        this.esInstantani = esInstantani;
+    }
+    
+    
 }

@@ -10,5 +10,9 @@ package com.polydeck.model;
  */
 public enum Color {
     VERMELL,
-    BLAU
+    BLAU,
+    NEGRE, 
+    VERD, 
+    BLANC, 
+    INCOLOR
 }
