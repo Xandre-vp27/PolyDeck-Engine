@@ -1,0 +1,17 @@
+# 1. Archivos compilados de Maven
+target/
+
+# 2. Archivos de configuración local de NetBeans e IDEs
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+.vscode/
+.idea/
+
+# 3. Archivos de base de datos de ObjectDB
+db/*.odb
+db/*.odb$
+$node$
+*.jdo
