@@ -4,14 +4,16 @@
  */
 package com.mycompany.polydeck.engine.model;
 
-import com.polydeck.model.Raresa;
 import java.io.Serializable;
+
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+
+import com.polydeck.model.Raresa;
 
 /**
  *
