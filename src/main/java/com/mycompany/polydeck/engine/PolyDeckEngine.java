@@ -1,7 +1,6 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
-
 package com.mycompany.polydeck.engine;
 
 import com.mycompany.polydeck.engine.model.Carta;
@@ -18,17 +17,19 @@ import javax.persistence.TypedQuery;
  * @author alumnet
  */
 public class PolyDeckEngine {
-
+    
+    static EntityManagerFactory emf = Persistence.createEntityManagerFactory("db/polydeck.odb");
+    static EntityManager em = emf.createEntityManager();
+    
     public static void main(String[] args) {
-        
+
         System.out.println("Iniciant Poly-Deck Engine...");
 
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("db/polydeck.odb");
-        EntityManager em = emf.createEntityManager();
+        
 
         try {
             long totalCartes = 0;
-            
+
             // Intentamos contar las cartas. Si la BD es nueva, lanzará una excepción porque no conoce "Carta"
             try {
                 totalCartes = em.createQuery("SELECT COUNT(c) FROM Carta c", Long.class).getSingleResult();
@@ -52,14 +53,41 @@ public class PolyDeckEngine {
             for (Carta c : llistaCartes) {
                 System.out.println("- [" + c.getClass().getSimpleName() + "] " + c.getNom());
             }
+            
+            comprovarGarantiaIdentitat();
 
         } catch (Exception e) {
             System.err.println("Error crític: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (em != null) em.close();
-            if (emf != null) emf.close();
+            if (em != null) {
+                em.close();
+            }
+            if (emf != null) {
+                emf.close();
+            }
             System.out.println("\nConnexió tancada correctament.");
+        }
+    }
+
+    public static void comprovarGarantiaIdentitat() {
+        System.out.println("\n--- PROVA DE GARANTIA D'IDENTITAT (Cache L1) ---");
+
+        // Buscamos la misma carta dos veces
+        Carta c1 = CartaDAO.buscarPerId(em, 1L);
+        Carta c2 = CartaDAO.buscarPerId(em, 1L);
+
+        if (c1 != null && c2 != null) {
+            System.out.println("Primera cerca: " + c1.getNom());
+            System.out.println("Segona cerca: " + c2.getNom());
+
+            // Comprovamos la garantía de identidad 
+            if (c1 == c2) {
+                System.out.println("RESULTAT: c1 == c2 és VERTADER.");
+                System.out.println("Explicació: L'EntityManager retorna exactament la mateixa instància en memòria.");
+            } else {
+                System.out.println("RESULTAT: c1 == c2 és FALS (Error en la configuració de la Cache L1).");
+            }
         }
     }
 }
