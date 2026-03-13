@@ -44,7 +44,7 @@ public class PolyDeckEngine {
                 System.out.println("-> Base de dades carregada. Total cartes: " + totalCartes);
             }
 
-            // Listado polimórfico [cite: 147, 150-151]
+            // Listado polimórfico 
             System.out.println("\n--- LLISTAT DE CARTES (Polimorfisme) ---");
             TypedQuery<Carta> query = em.createQuery("SELECT c FROM Carta c", Carta.class);
             List<Carta> llistaCartes = query.getResultList();
