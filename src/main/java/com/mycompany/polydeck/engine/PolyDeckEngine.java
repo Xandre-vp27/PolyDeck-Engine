@@ -3,14 +3,15 @@
  */
 package com.mycompany.polydeck.engine;
 
-import com.mycompany.polydeck.engine.model.Carta;
-import com.mycompany.polydeck.engine.service.ImportadorCartes;
-import java.io.File;
 import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
+
+import com.mycompany.polydeck.engine.model.Carta;
+import com.mycompany.polydeck.engine.service.ImportadorCartes;
 
 /**
  *
@@ -37,7 +38,7 @@ public class PolyDeckEngine {
                 System.out.println("-> Esquema verge detectat. La base de dades no conté dades.");
             }
 
-            // Lógica de importación segura
+            // Importación de cartas 
             if (totalCartes == 0) {
                 System.out.println("-> Important cartes des de 'cartes.txt'...");
                 ImportadorCartes.importar("cartes.txt", em);
@@ -51,7 +52,7 @@ public class PolyDeckEngine {
             List<Carta> llistaCartes = query.getResultList();
 
             for (Carta c : llistaCartes) {
-                System.out.println("- [" + c.getClass().getSimpleName() + "] " + c.getNom());
+                System.out.println("- "+ c.getId() +" [" + c.getClass().getSimpleName() + "] " + c.getNom());
             }
             
             comprovarGarantiaIdentitat();
