@@ -32,4 +32,14 @@ public class Jugador {
         this.nivell = nivell;
     }
 
+    public void afegirMazo(Mazo mazo) {
+        this.mazos.add(mazo);
+    }
+
+    public List<Mazo> getMazos() {
+        return mazos;
+    }
+
+    public String getNick() { return nick; }
+
 }

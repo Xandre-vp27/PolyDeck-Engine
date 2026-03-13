@@ -1,10 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.polydeck.engine.model;
 
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.*;
@@ -17,16 +13,28 @@ public class Mazo {
     private Long id;
     
     private String nom;
-    private LocalDate dataCreacio;
+    
+    @Temporal(TemporalType.DATE) // Afegir aquesta anotació
+    private Date dataCreacio; // Canviar a Date
     
     @ManyToMany(cascade = CascadeType.PERSIST)
     private List<Carta> cartes = new ArrayList<>();
     
     public Mazo() {}
 
-    public Mazo(String nom, LocalDate dataCreacio) {
+    // Canviar també el constructor
+    public Mazo(String nom, Date dataCreacio) {
         this.nom = nom;
         this.dataCreacio = dataCreacio;
     }
+    
+    public void afegirCarta(Carta carta) {
+        this.cartes.add(carta);
+    }
 
+    public List<Carta> getCartes() {
+        return cartes;
+    }
+
+    public String getNom() { return nom; }
 }

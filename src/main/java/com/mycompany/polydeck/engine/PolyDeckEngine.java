@@ -5,6 +5,8 @@
 package com.mycompany.polydeck.engine;
 
 import com.mycompany.polydeck.engine.model.Carta;
+import com.mycompany.polydeck.engine.model.Jugador;
+import com.mycompany.polydeck.engine.model.Mazo;
 import com.mycompany.polydeck.engine.service.ImportadorCartes;
 import java.io.File;
 import java.util.List;
@@ -44,6 +46,9 @@ public class PolyDeckEngine {
                 System.out.println("-> Base de dades carregada. Total cartes: " + totalCartes);
             }
 
+            // Llamamos al método para crear los datos de pruebaw
+            JugadorDAO.crearJugadorsIMazosDeProva(em);
+
             // Listado polimórfico 
             System.out.println("\n--- LLISTAT DE CARTES (Polimorfisme) ---");
             TypedQuery<Carta> query = em.createQuery("SELECT c FROM Carta c", Carta.class);
@@ -51,6 +56,17 @@ public class PolyDeckEngine {
 
             for (Carta c : llistaCartes) {
                 System.out.println("- [" + c.getClass().getSimpleName() + "] " + c.getNom());
+            }
+
+            // --- AFEGEIX AIXÒ ABANS DE TANCAR LA CONNEXIÓ ---
+            TypedQuery<Jugador> queryJugadors = em.createQuery("SELECT j FROM Jugador j", Jugador.class);
+            List<Jugador> jugadors = queryJugadors.getResultList();
+            
+            for (Jugador j : jugadors) {
+                System.out.println("Trobat Jugador: " + j.getNick());
+                for (Mazo m : j.getMazos()) {
+                    System.out.println("  -> Té el mazo: " + m.getNom() + " amb " + m.getCartes().size() + " cartes a dins.");
+                }
             }
 
         } catch (Exception e) {
