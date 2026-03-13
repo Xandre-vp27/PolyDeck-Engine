@@ -3,6 +3,8 @@ package com.mycompany.polydeck.engine.model;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -19,8 +21,8 @@ public class Mazo {
     
     private String nom;
     
-    @Temporal(TemporalType.DATE) // Afegir aquesta anotació
-    private Date dataCreacio; // Canviar a Date
+    @Temporal(TemporalType.DATE) 
+    private Date dataCreacio; 
     
     @ManyToMany(cascade = CascadeType.PERSIST)
     private List<Carta> cartes = new ArrayList<>();
