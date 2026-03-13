@@ -56,20 +56,65 @@ public class PolyDeckEngine {
             }
             
             comprovarGarantiaIdentitat();
+            ejecutarTascaA_DirtyChecking();
+            ejecutarTascaB_Merge();
 
+            
         } catch (Exception e) {
             System.err.println("Error crític: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (em != null) {
-                em.close();
-            }
-            if (emf != null) {
-                emf.close();
-            }
-            System.out.println("\nConnexió tancada correctament.");
+            if (em != null && em.isOpen()) em.close();
+            if (emf != null && emf.isOpen()) emf.close();
+            System.out.println("\nConnexió tancada.");
         }
     }
+
+
+
+    public static void ejecutarTascaA_DirtyChecking() {
+        System.out.println("\n--- TASCA A: Iniciant Dirty Checking (Managed) ---");
+        em.getTransaction().begin();
+        
+        // L'objecte passa a estat MANAGED al ser trobat per l'em actual
+        Carta cartaManaged = em.find(Carta.class, 1L); 
+        
+        if (cartaManaged != null) {
+            cartaManaged.setDescripcio("Modificat per Dirty Checking " + java.time.LocalTime.now());
+            // El commit sincronitza automàticament els canvis
+            em.getTransaction().commit(); 
+            System.out.println("-> OK: Canvi guardat automàticament pel Dirty Checking.");
+        } else {
+            em.getTransaction().rollback();
+            System.out.println("-> Error: No s'ha trobat la carta 1L.");
+        }
+    }
+
+
+    public static void ejecutarTascaB_Merge() {
+        System.out.println("\n--- TASCA B: Iniciant Merge (Detached) ---");
+        
+        // 1. Recuperar i tancar l'EntityManager actual per forçar estat DETACHED
+        Carta cartaDetached = em.find(Carta.class, 2L); 
+        if (em.isOpen()) em.close(); 
+        
+        if (cartaDetached != null) {
+            // 2. Modificar l'objecte mentre està "desconectat"
+            cartaDetached.setNom("Nom Modificat en Detached");
+
+            // 3. Obrir un nou EntityManager per fer el merge
+            EntityManager em2 = emf.createEntityManager();
+            em2.getTransaction().begin();
+            
+            // Sincronitzem l'objecte detached amb la base de dades
+            em2.merge(cartaDetached); 
+            
+            em2.getTransaction().commit();
+            em2.close();
+            System.out.println("-> OK: Canvis sincronitzats correctament amb merge().");
+        }
+    }
+
 
     public static void comprovarGarantiaIdentitat() {
         System.out.println("\n--- PROVA DE GARANTIA D'IDENTITAT (Cache L1) ---");
