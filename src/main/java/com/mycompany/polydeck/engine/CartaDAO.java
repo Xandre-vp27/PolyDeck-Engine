@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.polydeck.engine;
 
 import javax.persistence.EntityManager;
@@ -10,11 +6,19 @@ import javax.persistence.Persistence;
 
 import com.mycompany.polydeck.engine.model.Carta;
 
-/**
- *
- * @author alumnet
- */
 public class CartaDAO {
+
+    /**
+     * Busca una carta a la base de dades pel seu ID.
+     * @param em L'EntityManager actiu.
+     * @param id L'identificador de la carta (long).
+     * @return L'objecte Carta trobat o null si no existeix.
+     */
+    
+    public static Carta buscarPerId(EntityManager em, long id) {
+        // Utiliza el método find de JPA. 
+        return em.find(Carta.class, id);
+    }
 
     public static void eliminarCartaPorId(long id) {
 
@@ -46,4 +50,5 @@ public class CartaDAO {
         }
     }
 
+    
 }
