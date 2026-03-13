@@ -60,10 +60,6 @@ public class PolyDeckEngine {
                 System.out.println("- "+ c.getId() +" [" + c.getClass().getSimpleName() + "] " + c.getNom());
             }
             
-            comprovarGarantiaIdentitat();
-            ejecutarTascaA_DirtyChecking();
-            ejecutarTascaB_Merge();
-
             // --- AFEGEIX AIXÒ ABANS DE TANCAR LA CONNEXIÓ ---
             TypedQuery<Jugador> queryJugadors = em.createQuery("SELECT j FROM Jugador j", Jugador.class);
             List<Jugador> jugadors = queryJugadors.getResultList();
@@ -74,6 +70,11 @@ public class PolyDeckEngine {
                     System.out.println("  -> Té el mazo: " + m.getNom() + " amb " + m.getCartes().size() + " cartes a dins.");
                 }
             }
+            comprovarGarantiaIdentitat();
+            ejecutarTascaA_DirtyChecking();
+            ejecutarTascaB_Merge();
+
+
 
         } catch (Exception e) {
             System.err.println("Error crític: " + e.getMessage());
