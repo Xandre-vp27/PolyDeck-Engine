@@ -53,16 +53,33 @@ public class PolyDeckEngine {
     }
 
     // --- Mètodes auxiliars (es mantenen igual) ---
-
     private static void inicialitzarDades(EntityManager em) {
-        // Implementación según tu lógica (podría estar vacía o llamar a otro service)
+        try {
+            // Ús de la ruta completa per evitar que ObjectDB es perdi
+            String jpql = "SELECT COUNT(c) FROM com.mycompany.polydeck.engine.model.Carta c";
+            long total = em.createQuery(jpql, Long.class).getSingleResult();
+
+            if (total == 0) {
+                System.out.println("-> Base de dades buida. Important cartes...");
+                ImportadorCartes.importar("cartes.txt", em);
+            }
+        } catch (Exception e) {
+            System.out.println("-> Esquema verge detectat. Important cartes inicials...");
+            ImportadorCartes.importar("cartes.txt", em);
+        }
     }
 
     private static void executarProvaIdentitat(EntityManager em) {
         System.out.println("\n[TASCA A] Garantia d'Identitat:");
-        Carta c1 = em.find(Carta.class, 1L);
-        Carta c2 = em.find(Carta.class, 1L);
-        System.out.println("Identitat (c1 == c2): " + (c1 == c2)); // Ha de ser true per la Cache L1 
+        // Obtenim el primer ID vàlid que existeixi a la BD
+        String jpql = "SELECT c.id FROM com.mycompany.polydeck.engine.model.Carta c";
+        Long idValid = em.createQuery(jpql, Long.class).setMaxResults(1).getSingleResult();
+
+        Carta c1 = em.find(Carta.class, idValid);
+        Carta c2 = em.find(Carta.class, idValid);
+
+        System.out.println("Utilitzant ID: " + idValid);
+        System.out.println("Identitat (c1 == c2): " + (c1 == c2)); // Ara sí compararà dos objectes reals
     }
 
     private static void crearJugadorExemple(EntityManager em) {
@@ -70,37 +87,28 @@ public class PolyDeckEngine {
         try {
             em.getTransaction().begin();
             Jugador j = new Jugador("AlexDAM", 5);
-            Mazo m = new Mazo("Mazo Foc", LocalDate.now());
-            
-            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
+            Mazo m = new Mazo("Mazo Foc", new java.util.Date()); // Recorda mantenir el java.util.Date aquí
 
-            // Assegura't que la consulta troba criatures
-            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class)
-                    .setMaxResults(2).getResultList();
-
-            if (criatures.isEmpty()) {
-                System.out.println("Alerta: No s'han trobat criatures per afegir al mazo.");
-            }
+            // CANVI: Ús del nom complet del paquet per a Criatura
+            String jpql = "SELECT c FROM com.mycompany.polydeck.engine.model.Criatura c";
+            List<Carta> criatures = em.createQuery(jpql, Carta.class).setMaxResults(2).getResultList();
 
             m.getCartes().addAll(criatures);
             j.getMazos().add(m);
-            em.persist(j); 
 
             em.persist(j);
             em.getTransaction().commit();
-            System.out.println("Fet: Jugador creat correctament.");
         } catch (Exception e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
             System.err.println("Error creant el jugador: " + e.getMessage());
-            e.printStackTrace(); // Això t'ensenyarà la línia exacta de l'error
+            e.printStackTrace();
         }
     }
 
     private static void ejecutarConsultes(EntityManager em) {
         System.out.println("\n[TASCA B] Consultes JPQL:");
-        
 
         // B1: Polimòrfica
         System.out.println("- Criatures voladores (Cost Negre > 1):");
@@ -116,32 +124,34 @@ public class PolyDeckEngine {
     private static void provarDirtyChecking(EntityManager em) {
         System.out.println("\n[CICLE VIDA] Prova Dirty Checking:");
         em.getTransaction().begin();
-        Carta c = em.find(Carta.class, 1L);
-        if (c != null) {
-            c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING"); 
-        }
-        em.getTransaction().commit(); 
+
+        String jpql = "SELECT c.id FROM com.mycompany.polydeck.engine.model.Carta c";
+        Long idValid = em.createQuery(jpql, Long.class).setMaxResults(1).getSingleResult();
+        Carta c = em.find(Carta.class, idValid);
+
         c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING");
-        // No fem em.persist()! 
+
         em.getTransaction().commit();
-        System.out.println("Fet: Canvi guardat automàticament per estar en estat Managed.");
+        System.out.println("Fet: Canvi guardat automàticament a la carta amb ID " + idValid);
     }
 
     private static void provarMerge(EntityManagerFactory emf) {
         System.out.println("\n[CICLE VIDA] Prova Merge (Detached):");
         EntityManager em1 = emf.createEntityManager();
-        Carta c = em1.find(Carta.class, 2L);
-        em1.close(); 
+        
+        String jpql = "SELECT c.id FROM com.mycompany.polydeck.engine.model.Carta c";
+        Long idValid = em1.createQuery(jpql, Long.class).setMaxResults(1).getSingleResult();
+        Carta c = em1.find(Carta.class, idValid);
+        em1.close(); // L'objecte c ara és DETACHED 
 
-        if (c != null) {
-            c.setNom("Nom Modificat en Detached");
-            EntityManager em2 = emf.createEntityManager();
-            em2.getTransaction().begin();
-            em2.merge(c); 
-            em2.getTransaction().commit();
-            em2.close();
-            System.out.println("Fet: Objecte Detached sincronitzat amb merge().");
-        }
+        c.setNom(c.getNom() + " (Modificat en Detached)");
+
+        EntityManager em2 = emf.createEntityManager();
+        em2.getTransaction().begin();
+        em2.merge(c); 
+        em2.getTransaction().commit();
+        em2.close();
+        System.out.println("Fet: Objecte Detached (ID " + idValid + ") sincronitzat amb merge().");
     }
 
     private static void provarOrphanRemoval(EntityManager em) {
@@ -149,15 +159,17 @@ public class PolyDeckEngine {
         try {
             em.getTransaction().begin();
             Jugador j = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class).getSingleResult();
-            
+
             if (j != null && !j.getMazos().isEmpty()) {
-                j.getMazos().remove(0); 
+                j.getMazos().remove(0);
                 System.out.println("Fet: Mazo eliminat de la BD en treure'l de la llista del Jugador.");
             }
             em.getTransaction().commit();
         } catch (NoResultException e) {
             System.out.println("No s'ha trobat el jugador AlexDAM.");
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
             // En lloc de getSingleResult (que peta si no hi ha res), usem una llista
             TypedQuery<Jugador> q = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class);
             List<Jugador> resultats = q.getResultList();

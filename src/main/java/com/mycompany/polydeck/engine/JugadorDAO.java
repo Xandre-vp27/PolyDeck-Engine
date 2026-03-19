@@ -23,7 +23,7 @@ public class JugadorDAO {
             List<Carta> cartesRecuperades = query.getResultList();
 
             // 2. Instanciar un nuevo Mazo (Estado: New)
-            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", LocalDate.now());
+            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", new java.util.Date());
             
             // Añadimos las cartas recuperadas al mazo
             for (Carta c : cartesRecuperades) {
