@@ -1,10 +1,18 @@
 package com.mycompany.polydeck.engine;
 
-import com.mycompany.polydeck.engine.model.*;
-import com.mycompany.polydeck.engine.service.ImportadorCartes;
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
-import javax.persistence.*;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Persistence;
+import javax.persistence.TypedQuery;
+
+import com.mycompany.polydeck.engine.model.Carta;
+import com.mycompany.polydeck.engine.model.Jugador;
+import com.mycompany.polydeck.engine.model.Mazo;
+import com.mycompany.polydeck.engine.service.ImportadorCartes;
 
 public class PolyDeckEngine {
 
@@ -70,13 +78,9 @@ public class PolyDeckEngine {
         try {
             em.getTransaction().begin();
             Jugador j = new Jugador("AlexDAM", 5);
-            Mazo m = new Mazo("Mazo Foc", LocalDate.now());
-            
-            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
+            Mazo m = new Mazo("Mazo Foc", new Date());
 
-            // Assegura't que la consulta troba criatures
-            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class)
-                    .setMaxResults(2).getResultList();
+            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
 
             if (criatures.isEmpty()) {
                 System.out.println("Alerta: No s'han trobat criatures per afegir al mazo.");
@@ -113,19 +117,40 @@ public class PolyDeckEngine {
         ConsultesDAO.buscarEncanterisSenseBlauBlanc(em, 1).forEach(e -> System.out.println("  * " + e.getNom()));
     }
 
-    private static void provarDirtyChecking(EntityManager em) {
-        System.out.println("\n[CICLE VIDA] Prova Dirty Checking:");
+private static void provarDirtyChecking(EntityManager em) {
+    System.out.println("\n[CICLE VIDA] Prova Dirty Checking:");
+    
+    try {
+        // 1. Iniciamos la transacción
         em.getTransaction().begin();
+        
+        // 2. Buscamos la entidad (pasa a estado MANAGED)
         Carta c = em.find(Carta.class, 1L);
+        
         if (c != null) {
-            c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING"); 
+            // 3. Modificamos el objeto en memoria
+            c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING");
+            System.out.println("   - Modificant l'entitat '" + c.getNom() + "' en memòria...");
+            
+            // IMPORTANTE: No hace falta hacer em.persist() ni em.merge() 
+            // El motor detecta el cambio automáticamente al hacer commit.
+        } else {
+            System.out.println("   - Alerta: No s'ha trobat la carta amb ID 1.");
         }
-        em.getTransaction().commit(); 
-        c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING");
-        // No fem em.persist()! 
+
+        // 4. Finalizamos la transacción (aquí se sincroniza con la BD)
         em.getTransaction().commit();
         System.out.println("Fet: Canvi guardat automàticament per estar en estat Managed.");
+        
+    } catch (Exception e) {
+        if (em.getTransaction().isActive()) {
+            em.getTransaction().rollback();
+        }
+        System.err.println("Error en Dirty Checking: " + e.getMessage());
+        // Re-lanzamos la excepción si queremos que el main la capture, 
+        // pero en este caso es mejor controlarla aquí para no romper el flujo.
     }
+}
 
     private static void provarMerge(EntityManagerFactory emf) {
         System.out.println("\n[CICLE VIDA] Prova Merge (Detached):");
@@ -144,44 +169,39 @@ public class PolyDeckEngine {
         }
     }
 
-    private static void provarOrphanRemoval(EntityManager em) {
+        private static void provarOrphanRemoval(EntityManager em) {
         System.out.println("\n[DELETE] Prova Orphan Removal:");
+        EntityTransaction tx = em.getTransaction();
         try {
-            em.getTransaction().begin();
-            Jugador j = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class).getSingleResult();
+            tx.begin();
             
-            if (j != null && !j.getMazos().isEmpty()) {
-                j.getMazos().remove(0); 
-                System.out.println("Fet: Mazo eliminat de la BD en treure'l de la llista del Jugador.");
-            }
-            em.getTransaction().commit();
-        } catch (NoResultException e) {
-            System.out.println("No s'ha trobat el jugador AlexDAM.");
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            // En lloc de getSingleResult (que peta si no hi ha res), usem una llista
-            TypedQuery<Jugador> q = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class);
+            // 1. En lugar de getSingleResult, usamos una lista para evitar la excepción
+            TypedQuery<Jugador> q = em.createQuery(
+                "SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class);
+            q.setMaxResults(1); // Nos aseguramos de traer solo uno si hay duplicados
             List<Jugador> resultats = q.getResultList();
 
-            if (resultats.isEmpty()) {
-                System.out.println("Error: No s'ha trobat el jugador 'AlexDAM' a la base de dades.");
-                return;
-            }
-
-            em.getTransaction().begin();
-            Jugador j = resultats.get(0);
-
-            if (!j.getMazos().isEmpty()) {
-                // L'Orphan Removal s'activa en treure l'objecte de la llista gestionada
-                j.getMazos().remove(0);
-                System.out.println("Fet: Mazo eliminat de la BD automàticament (Orphan Removal).");
+            if (!resultats.isEmpty()) {
+                Jugador j = resultats.get(0);
+                
+                if (!j.getMazos().isEmpty()) {
+                    // 2. Al eliminar de la lista, JPA detecta 'orphanRemoval=true' 
+                    // y lanza el DELETE en la base de datos automáticamente.
+                    Mazo mazoAEliminar = j.getMazos().get(0);
+                    j.getMazos().remove(0); 
+                    
+                    System.out.println("   - Eliminant el mazo: " + mazoAEliminar.getNom());
+                    System.out.println("Fet: Mazo eliminat de la BD per Orphan Removal.");
+                } else {
+                    System.out.println("   - El jugador 'AlexDAM' no té mazos per eliminar.");
+                }
             } else {
-                System.out.println("El jugador no té mazos per eliminar.");
+                System.out.println("   - No s'ha trobat cap jugador amb el nick 'AlexDAM'.");
             }
-            em.getTransaction().commit();
+            
+            tx.commit();
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
+            if (tx.isActive()) tx.rollback();
             System.err.println("Error en Orphan Removal: " + e.getMessage());
         }
     }

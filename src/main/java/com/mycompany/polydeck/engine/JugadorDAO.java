@@ -1,13 +1,14 @@
 package com.mycompany.polydeck.engine;
 
+import java.util.Date;
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
+
 import com.mycompany.polydeck.engine.model.Carta;
 import com.mycompany.polydeck.engine.model.Jugador;
 import com.mycompany.polydeck.engine.model.Mazo;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Date;
-import javax.persistence.EntityManager;
-import javax.persistence.TypedQuery;
 
 public class JugadorDAO {
 
@@ -23,8 +24,8 @@ public class JugadorDAO {
             List<Carta> cartesRecuperades = query.getResultList();
 
             // 2. Instanciar un nuevo Mazo (Estado: New)
-            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", LocalDate.now());
-            
+            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", new Date());
+
             // Añadimos las cartas recuperadas al mazo
             for (Carta c : cartesRecuperades) {
                 mazo1.afegirCarta(c);

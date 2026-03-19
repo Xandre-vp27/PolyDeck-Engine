@@ -1,17 +1,16 @@
 package com.mycompany.polydeck.engine.model;
 
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 @Entity
 public class Mazo {
@@ -23,7 +22,7 @@ public class Mazo {
     private String nom;
     
     @Temporal(TemporalType.DATE) 
-    private LocalDate dataCreacio; 
+    private Date dataCreacio; 
     
     @ManyToMany(cascade = CascadeType.PERSIST)
     private List<Carta> cartes = new ArrayList<>();
@@ -31,7 +30,7 @@ public class Mazo {
     public Mazo() {}
 
     // Canviar també el constructor
-    public Mazo(String nom, LocalDate dataCreacio) {
+    public Mazo(String nom, Date dataCreacio) {
         this.nom = nom;
         this.dataCreacio = dataCreacio;
     }
@@ -52,11 +51,11 @@ public class Mazo {
         this.nom = nom;
     }
 
-    public LocalDate getDataCreacio() {
+    public Date getDataCreacio() {
         return dataCreacio;
     }
 
-    public void setDataCreacio(LocalDate dataCreacio) {
+    public void setDataCreacio(Date dataCreacio) {
         this.dataCreacio = dataCreacio;
     }
 
