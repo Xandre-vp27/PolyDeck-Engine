@@ -2,7 +2,7 @@ package com.mycompany.polydeck.engine;
 
 import com.mycompany.polydeck.engine.model.*;
 import com.mycompany.polydeck.engine.service.ImportadorCartes;
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import javax.persistence.*;
 
@@ -14,7 +14,6 @@ public class PolyDeckEngine {
 
         try {
             // --- 1. PREPARACIÓ I IMPORTACIÓ --- 
-            // Si el método falla, el catch llamará al importador
             inicialitzarDades(em);
 
             // --- 2. CERCA PER ID I GARANTIA D'IDENTITAT --- 
@@ -39,8 +38,8 @@ public class PolyDeckEngine {
             provarOrphanRemoval(em);
 
         } catch (Exception e) {
-            System.err.println("Error detectat, intentant importar dades: " + e.getMessage());
-            ImportadorCartes.importar("cartes.txt", em);
+            System.err.println("Error general en la execució: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             if (em.isOpen()) {
                 em.close();
@@ -52,17 +51,32 @@ public class PolyDeckEngine {
         }
     }
 
-    // --- Mètodes auxiliars (es mantenen igual) ---
+    // --- Mètodes auxiliars ---
 
     private static void inicialitzarDades(EntityManager em) {
-        // Implementación según tu lógica (podría estar vacía o llamar a otro service)
+        try {
+            // Intentem comptar quantes cartes hi ha
+            long totalCartes = em.createQuery("SELECT COUNT(c) FROM Carta c", Long.class).getSingleResult();
+            
+            if (totalCartes == 0) {
+                System.out.println("-> La BD està buida. Important cartes des de 'cartes.txt'...");
+                ImportadorCartes.importar("cartes.txt", em);
+            } else {
+                System.out.println("-> Base de dades carregada. Total cartes: " + totalCartes);
+            }
+        } catch (Exception ex) {
+            // Si la base de dades acaba de ser creada, la consulta anterior donarà error 
+            // perquè ObjectDB encara no coneix la classe "Carta". Ho capturem aquí i importem.
+            System.out.println("-> Esquema verge detectat. Important cartes des de 'cartes.txt'...");
+            ImportadorCartes.importar("cartes.txt", em);
+        }
     }
 
     private static void executarProvaIdentitat(EntityManager em) {
         System.out.println("\n[TASCA A] Garantia d'Identitat:");
         Carta c1 = em.find(Carta.class, 1L);
         Carta c2 = em.find(Carta.class, 1L);
-        System.out.println("Identitat (c1 == c2): " + (c1 == c2)); // Ha de ser true per la Cache L1 
+        System.out.println("Identitat (c1 == c2): " + (c1 == c2)); 
     }
 
     private static void crearJugadorExemple(EntityManager em) {
@@ -70,11 +84,8 @@ public class PolyDeckEngine {
         try {
             em.getTransaction().begin();
             Jugador j = new Jugador("AlexDAM", 5);
-            Mazo m = new Mazo("Mazo Foc", LocalDate.now());
+            Mazo m = new Mazo("Mazo Foc", new Date());
             
-            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
-
-            // Assegura't que la consulta troba criatures
             List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class)
                     .setMaxResults(2).getResultList();
 
@@ -84,9 +95,8 @@ public class PolyDeckEngine {
 
             m.getCartes().addAll(criatures);
             j.getMazos().add(m);
+            
             em.persist(j); 
-
-            em.persist(j);
             em.getTransaction().commit();
             System.out.println("Fet: Jugador creat correctament.");
         } catch (Exception e) {
@@ -94,15 +104,13 @@ public class PolyDeckEngine {
                 em.getTransaction().rollback();
             }
             System.err.println("Error creant el jugador: " + e.getMessage());
-            e.printStackTrace(); // Això t'ensenyarà la línia exacta de l'error
+            e.printStackTrace(); 
         }
     }
 
     private static void ejecutarConsultes(EntityManager em) {
         System.out.println("\n[TASCA B] Consultes JPQL:");
         
-
-        // B1: Polimòrfica
         System.out.println("- Criatures voladores (Cost Negre > 1):");
         ConsultesDAO.buscarCriaturesVoladoresNegres(em, 1).forEach(c -> System.out.println("  * " + c.getNom()));
 
@@ -121,9 +129,6 @@ public class PolyDeckEngine {
             c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING"); 
         }
         em.getTransaction().commit(); 
-        c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING");
-        // No fem em.persist()! 
-        em.getTransaction().commit();
         System.out.println("Fet: Canvi guardat automàticament per estar en estat Managed.");
     }
 
@@ -147,18 +152,6 @@ public class PolyDeckEngine {
     private static void provarOrphanRemoval(EntityManager em) {
         System.out.println("\n[DELETE] Prova Orphan Removal:");
         try {
-            em.getTransaction().begin();
-            Jugador j = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class).getSingleResult();
-            
-            if (j != null && !j.getMazos().isEmpty()) {
-                j.getMazos().remove(0); 
-                System.out.println("Fet: Mazo eliminat de la BD en treure'l de la llista del Jugador.");
-            }
-            em.getTransaction().commit();
-        } catch (NoResultException e) {
-            System.out.println("No s'ha trobat el jugador AlexDAM.");
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            // En lloc de getSingleResult (que peta si no hi ha res), usem una llista
             TypedQuery<Jugador> q = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class);
             List<Jugador> resultats = q.getResultList();
 
@@ -171,7 +164,6 @@ public class PolyDeckEngine {
             Jugador j = resultats.get(0);
 
             if (!j.getMazos().isEmpty()) {
-                // L'Orphan Removal s'activa en treure l'objecte de la llista gestionada
                 j.getMazos().remove(0);
                 System.out.println("Fet: Mazo eliminat de la BD automàticament (Orphan Removal).");
             } else {

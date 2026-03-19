@@ -3,7 +3,6 @@ package com.mycompany.polydeck.engine;
 import com.mycompany.polydeck.engine.model.Carta;
 import com.mycompany.polydeck.engine.model.Jugador;
 import com.mycompany.polydeck.engine.model.Mazo;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Date;
 import javax.persistence.EntityManager;
@@ -23,7 +22,7 @@ public class JugadorDAO {
             List<Carta> cartesRecuperades = query.getResultList();
 
             // 2. Instanciar un nuevo Mazo (Estado: New)
-            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", LocalDate.now());
+            Mazo mazo1 = new Mazo("Mazo Foc Primigeni", new Date());
             
             // Añadimos las cartas recuperadas al mazo
             for (Carta c : cartesRecuperades) {
@@ -37,8 +36,6 @@ public class JugadorDAO {
             jugador1.afegirMazo(mazo1);
 
             // 4. Persistir el objeto padre
-            // IMPORTANTE: Gracias a que en Jugador.java tienes CascadeType.ALL en la lista de mazos,
-            // al hacer persist del Jugador, ObjectDB automáticamente hará persist del Mazo también.
             em.persist(jugador1);
 
             em.getTransaction().commit();
@@ -52,4 +49,3 @@ public class JugadorDAO {
         }
     }
 }
-

@@ -8,7 +8,6 @@ public class ConsultesDAO {
 
     // Consulta Polimòrfica corregida
     public static List<Carta> buscarCriaturesVoladoresNegres(EntityManager em, int costNegre) {
-        // Consultem directament 'Carta'
         String jpql = "SELECT c FROM Criatura c WHERE c.volar = true AND c.cost.negre > :n";
         
         TypedQuery<Carta> query = em.createQuery(jpql, Carta.class);
@@ -16,9 +15,10 @@ public class ConsultesDAO {
         return query.getResultList();
     }
 
-    // Deep Path i Agregació corregida
+    // Deep Path i Agregació (Mètode segur per a ObjectDB 2.8.1)
     public static Double mitjanaForçaJugador(EntityManager em, String nick) {
-        String jpql = "SELECT AVG(c.força) FROM Jugador j JOIN j.mazos m, Criatura c " +
+        // Creuem explícitament amb Criatura i filtrem amb MEMBER OF per evitar l'error del TREAT
+        String jpql = "SELECT AVG(c.forca) FROM Jugador j JOIN j.mazos m, Criatura c " +
                       "WHERE c MEMBER OF m.cartes AND j.nick = :nick";
         
         TypedQuery<Double> query = em.createQuery(jpql, Double.class);

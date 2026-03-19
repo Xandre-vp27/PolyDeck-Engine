@@ -1,9 +1,6 @@
 package com.mycompany.polydeck.engine;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-
 import com.mycompany.polydeck.engine.model.Carta;
 
 public class CartaDAO {
@@ -16,17 +13,10 @@ public class CartaDAO {
      */
     
     public static Carta buscarPerId(EntityManager em, long id) {
-        // Utiliza el método find de JPA. 
         return em.find(Carta.class, id);
     }
 
-    public static void eliminarCartaPorId(long id) {
-
-
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("db/polydeck.odb");
-
-        EntityManager em = emf.createEntityManager();
-
+    public static void eliminarCartaPorId(EntityManager em, long id) {
         try {
             em.getTransaction().begin();
 
@@ -45,10 +35,6 @@ public class CartaDAO {
                 em.getTransaction().rollback();
             }
             e.printStackTrace();
-        } finally {
-            em.close();
         }
     }
-
-    
 }
