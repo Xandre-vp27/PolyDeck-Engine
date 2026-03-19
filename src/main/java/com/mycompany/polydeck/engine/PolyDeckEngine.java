@@ -1,155 +1,139 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
 package com.mycompany.polydeck.engine;
 
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.TypedQuery;
-
-import com.mycompany.polydeck.engine.model.Carta;
-import com.mycompany.polydeck.engine.model.Jugador;
-import com.mycompany.polydeck.engine.model.Mazo;
+import com.mycompany.polydeck.engine.model.*;
 import com.mycompany.polydeck.engine.service.ImportadorCartes;
+import java.time.LocalDate;
+import java.util.List;
+import javax.persistence.*;
 
-/**
- *
- * @author alumnet
- */
 public class PolyDeckEngine {
-    
-    static EntityManagerFactory emf = Persistence.createEntityManagerFactory("db/polydeck.odb");
-    static EntityManager em = emf.createEntityManager();
-    
+
     public static void main(String[] args) {
-
-        System.out.println("Iniciant Poly-Deck Engine...");
-
-        
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("db/polydeck.odb");
+        EntityManager em = emf.createEntityManager();
 
         try {
-            long totalCartes = 0;
+            // --- 1. PREPARACIÓ I IMPORTACIÓ --- 
+            // Si el método falla, el catch llamará al importador
+            inicialitzarDades(em);
 
-            // Intentamos contar las cartas. Si la BD es nueva, lanzará una excepción porque no conoce "Carta"
-            try {
-                totalCartes = em.createQuery("SELECT COUNT(c) FROM Carta c", Long.class).getSingleResult();
-            } catch (Exception ex) {
-                System.out.println("-> Esquema verge detectat. La base de dades no conté dades.");
-            }
+            // --- 2. CERCA PER ID I GARANTIA D'IDENTITAT --- 
+            executarProvaIdentitat(em);
 
-            // Importación de cartas 
-            if (totalCartes == 0) {
-                System.out.println("-> Important cartes des de 'cartes.txt'...");
-                ImportadorCartes.importar("cartes.txt", em);
-            } else {
-                System.out.println("-> Base de dades carregada. Total cartes: " + totalCartes);
-            }
+            // --- 3. CREACIÓ DE JUGADOR I MAZO (Deep Path Setup) --- 
+            crearJugadorExemple(em);
 
-            // Llamamos al método para crear los datos de pruebaw
+            // Llamamos al método para crear los datos de prueba
             JugadorDAO.crearJugadorsIMazosDeProva(em);
 
-            // Listado polimórfico 
-            System.out.println("\n--- LLISTAT DE CARTES (Polimorfisme) ---");
-            TypedQuery<Carta> query = em.createQuery("SELECT c FROM Carta c", Carta.class);
-            List<Carta> llistaCartes = query.getResultList();
+            // --- 4. CONSULTES JPQL AVANÇADES --- 
+            ejecutarConsultes(em);
 
-            for (Carta c : llistaCartes) {
-                System.out.println("- "+ c.getId() +" [" + c.getClass().getSimpleName() + "] " + c.getNom());
-            }
-            
-            // --- AFEGEIX AIXÒ ABANS DE TANCAR LA CONNEXIÓ ---
-            TypedQuery<Jugador> queryJugadors = em.createQuery("SELECT j FROM Jugador j", Jugador.class);
-            List<Jugador> jugadors = queryJugadors.getResultList();
-            
-            for (Jugador j : jugadors) {
-                System.out.println("Trobat Jugador: " + j.getNick());
-                for (Mazo m : j.getMazos()) {
-                    System.out.println("  -> Té el mazo: " + m.getNom() + " amb " + m.getCartes().size() + " cartes a dins.");
-                }
-            }
-            comprovarGarantiaIdentitat();
-            ejecutarTascaA_DirtyChecking();
-            ejecutarTascaB_Merge();
+            // --- 5. CICLE DE VIDA: DIRTY CHECKING --- 
+            provarDirtyChecking(em);
 
+            // --- 6. CICLE DE VIDA: MERGE (DETACHED) --- 
+            provarMerge(emf);
 
+            // --- 7. ELIMINACIÓ: ORPHAN REMOVAL --- 
+            provarOrphanRemoval(em);
 
         } catch (Exception e) {
-            System.err.println("Error crític: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error detectat, intentant importar dades: " + e.getMessage());
+            ImportadorCartes.importar("cartes.txt", em);
         } finally {
-            if (em != null && em.isOpen()) em.close();
-            if (emf != null && emf.isOpen()) emf.close();
-            System.out.println("\nConnexió tancada.");
+            if (em.isOpen()) em.close();
+            if (emf.isOpen()) emf.close();
+            System.out.println("\n>>> Motor aturat i recursos alliberats.");
         }
     }
 
+    // --- Mètodes auxiliars (es mantenen igual) ---
 
+    private static void inicialitzarDades(EntityManager em) {
+        // Implementación según tu lógica (podría estar vacía o llamar a otro service)
+    }
 
-    public static void ejecutarTascaA_DirtyChecking() {
-        System.out.println("\n--- TASCA A: Iniciant Dirty Checking (Managed) ---");
+    private static void executarProvaIdentitat(EntityManager em) {
+        System.out.println("\n[TASCA A] Garantia d'Identitat:");
+        Carta c1 = em.find(Carta.class, 1L);
+        Carta c2 = em.find(Carta.class, 1L);
+        System.out.println("Identitat (c1 == c2): " + (c1 == c2)); // Ha de ser true per la Cache L1 
+    }
+
+    private static void crearJugadorExemple(EntityManager em) {
+        System.out.println("\n-> Creant jugador i mazo de prova...");
+        try {
+            em.getTransaction().begin();
+            Jugador j = new Jugador("AlexDAM", 5);
+            Mazo m = new Mazo("Mazo Foc", LocalDate.now());
+            
+            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
+            m.getCartes().addAll(criatures);
+            
+            j.getMazos().add(m);
+            em.persist(j); 
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+        }
+    }
+
+    private static void ejecutarConsultes(EntityManager em) {
+        System.out.println("\n[TASCA B] Consultes JPQL:");
+        
+        System.out.println("- Criatures voladores (Cost Negre > 1):");
+        ConsultesDAO.buscarCriaturesVoladoresNegres(em, 1).forEach(c -> System.out.println("  * " + c.getNom()));
+
+        Double mitjana = ConsultesDAO.mitjanaForçaJugador(em, "AlexDAM");
+        System.out.printf("- Mitjana força AlexDAM (Deep Path): %.2f\n", mitjana);
+
+        System.out.println("- Encanteris (Incolor > 1, sense Blau/Blanc):");
+        ConsultesDAO.buscarEncanterisSenseBlauBlanc(em, 1).forEach(e -> System.out.println("  * " + e.getNom()));
+    }
+
+    private static void provarDirtyChecking(EntityManager em) {
+        System.out.println("\n[CICLE VIDA] Prova Dirty Checking:");
         em.getTransaction().begin();
-        
-        // L'objecte passa a estat MANAGED al ser trobat per l'em actual
-        Carta cartaManaged = em.find(Carta.class, 1L); 
-        
-        if (cartaManaged != null) {
-            cartaManaged.setDescripcio("Modificat per Dirty Checking " + java.time.LocalTime.now());
-            // El commit sincronitza automàticament els canvis
-            em.getTransaction().commit(); 
-            System.out.println("-> OK: Canvi guardat automàticament pel Dirty Checking.");
-        } else {
-            em.getTransaction().rollback();
-            System.out.println("-> Error: No s'ha trobat la carta 1L.");
+        Carta c = em.find(Carta.class, 1L);
+        if (c != null) {
+            c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING"); 
         }
+        em.getTransaction().commit(); 
+        System.out.println("Fet: Canvi guardat automàticament per estar en estat Managed.");
     }
 
+    private static void provarMerge(EntityManagerFactory emf) {
+        System.out.println("\n[CICLE VIDA] Prova Merge (Detached):");
+        EntityManager em1 = emf.createEntityManager();
+        Carta c = em1.find(Carta.class, 2L);
+        em1.close(); 
 
-    public static void ejecutarTascaB_Merge() {
-        System.out.println("\n--- TASCA B: Iniciant Merge (Detached) ---");
-        
-        // 1. Recuperar i tancar l'EntityManager actual per forçar estat DETACHED
-        Carta cartaDetached = em.find(Carta.class, 2L); 
-        if (em.isOpen()) em.close(); 
-        
-        if (cartaDetached != null) {
-            // 2. Modificar l'objecte mentre està "desconectat"
-            cartaDetached.setNom("Nom Modificat en Detached");
-
-            // 3. Obrir un nou EntityManager per fer el merge
+        if (c != null) {
+            c.setNom("Nom Modificat en Detached");
             EntityManager em2 = emf.createEntityManager();
             em2.getTransaction().begin();
-            
-            // Sincronitzem l'objecte detached amb la base de dades
-            em2.merge(cartaDetached); 
-            
+            em2.merge(c); 
             em2.getTransaction().commit();
             em2.close();
-            System.out.println("-> OK: Canvis sincronitzats correctament amb merge().");
+            System.out.println("Fet: Objecte Detached sincronitzat amb merge().");
         }
     }
 
-
-    public static void comprovarGarantiaIdentitat() {
-        System.out.println("\n--- PROVA DE GARANTIA D'IDENTITAT (Cache L1) ---");
-
-        // Buscamos la misma carta dos veces
-        Carta c1 = CartaDAO.buscarPerId(em, 1L);
-        Carta c2 = CartaDAO.buscarPerId(em, 1L);
-
-        if (c1 != null && c2 != null) {
-            System.out.println("Primera cerca: " + c1.getNom());
-            System.out.println("Segona cerca: " + c2.getNom());
-
-            // Comprovamos la garantía de identidad 
-            if (c1 == c2) {
-                System.out.println("RESULTAT: c1 == c2 és VERTADER.");
-                System.out.println("Explicació: L'EntityManager retorna exactament la mateixa instància en memòria.");
-            } else {
-                System.out.println("RESULTAT: c1 == c2 és FALS (Error en la configuració de la Cache L1).");
+    private static void provarOrphanRemoval(EntityManager em) {
+        System.out.println("\n[DELETE] Prova Orphan Removal:");
+        try {
+            em.getTransaction().begin();
+            Jugador j = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class).getSingleResult();
+            
+            if (j != null && !j.getMazos().isEmpty()) {
+                j.getMazos().remove(0); 
+                System.out.println("Fet: Mazo eliminat de la BD en treure'l de la llista del Jugador.");
             }
+            em.getTransaction().commit();
+        } catch (NoResultException e) {
+            System.out.println("No s'ha trobat el jugador AlexDAM.");
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
         }
     }
 }

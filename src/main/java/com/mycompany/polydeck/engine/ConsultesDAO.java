@@ -1,0 +1,36 @@
+package com.mycompany.polydeck.engine;
+
+import com.mycompany.polydeck.engine.model.*;
+import java.util.List;
+import javax.persistence.*;
+
+public class ConsultesDAO {
+
+    // Consulta Polimòrfica amb filtre de subclasse
+    public static List<Carta> buscarCriaturesVoladoresNegres(EntityManager em, int costNegre) {
+        String jpql = "SELECT c FROM Carta c WHERE TYPE(c) = Criatura " +
+                      "AND c.volar = true AND c.cost.negre > :n";
+        TypedQuery<Carta> query = em.createQuery(jpql, Carta.class);
+        query.setParameter("n", costNegre);
+        return query.getResultList();
+    }
+
+    // Deep Path i Agregació (Mitjana de força)
+    public static Double mitjanaForçaJugador(EntityManager em, String nick) {
+        String jpql = "SELECT AVG(c.força) FROM Jugador j JOIN j.mazos m JOIN m.cartes c " +
+                      "WHERE j.nick = :nick AND TYPE(c) = Criatura";
+        TypedQuery<Double> query = em.createQuery(jpql, Double.class);
+        query.setParameter("nick", nick);
+        Double res = query.getSingleResult();
+        return (res != null) ? res : 0.0;
+    }
+
+    // Consulta per Component Incrustat (@Embedded) 
+    public static List<Encanteri> buscarEncanterisSenseBlauBlanc(EntityManager em, int incolor) {
+        String jpql = "SELECT e FROM Encanteri e WHERE e.cost.blau = 0 " +
+                      "AND e.cost.blanc = 0 AND e.cost.incolor > :i";
+        TypedQuery<Encanteri> query = em.createQuery(jpql, Encanteri.class);
+        query.setParameter("i", incolor);
+        return query.getResultList();
+    }
+}

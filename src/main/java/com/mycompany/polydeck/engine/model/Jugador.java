@@ -31,15 +31,50 @@ public class Jugador {
         this.nick = nick;
         this.nivell = nivell;
     }
+    
+    public Long getId() {
+        return id;
+    }
 
-    public void afegirMazo(Mazo mazo) {
-        this.mazos.add(mazo);
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNick() {
+        return nick;
+    }
+
+    public void setNick(String nick) {
+        this.nick = nick;
+    }
+
+    public int getNivell() {
+        return nivell;
+    }
+
+    public void setNivell(int nivell) {
+        this.nivell = nivell;
     }
 
     public List<Mazo> getMazos() {
         return mazos;
     }
 
-    public String getNick() { return nick; }
+    public void setMazos(List<Mazo> mazos) {
+        this.mazos = mazos;
+    }
+
+    public List<Carta> getColeccion() {
+        return coleccion;
+    }
+
+    public void setColeccion(List<Carta> coleccion) {
+        this.coleccion = coleccion;
+    }
+
+    public void afegirMazo(Mazo mazo) {
+        this.mazos.add(mazo);
+    }
+
 
 }
