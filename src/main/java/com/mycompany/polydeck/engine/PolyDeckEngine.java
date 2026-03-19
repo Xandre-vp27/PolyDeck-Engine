@@ -63,7 +63,22 @@ public class PolyDeckEngine {
     // --- Mètodes auxiliars (es mantenen igual) ---
 
     private static void inicialitzarDades(EntityManager em) {
-        // Implementación según tu lógica (podría estar vacía o llamar a otro service)
+            try {
+            // Intentem comptar quantes cartes hi ha
+            long totalCartes = em.createQuery("SELECT COUNT(c) FROM Carta c", Long.class).getSingleResult();
+            
+            if (totalCartes == 0) {
+                System.out.println("-> La BD està buida. Important cartes des de 'cartes.txt'...");
+                ImportadorCartes.importar("cartes.txt", em);
+            } else {
+                System.out.println("-> Base de dades carregada. Total cartes: " + totalCartes);
+            }
+        } catch (Exception ex) {
+            // Si la base de dades acaba de ser creada, la consulta anterior donarà error 
+            // perquè ObjectDB encara no coneix la classe "Carta". Ho capturem aquí i importem.
+            System.out.println("-> Esquema verge detectat. Important cartes des de 'cartes.txt'...");
+            ImportadorCartes.importar("cartes.txt", em);
+        }
     }
 
     private static void executarProvaIdentitat(EntityManager em) {
