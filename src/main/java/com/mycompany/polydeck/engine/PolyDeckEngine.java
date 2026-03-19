@@ -42,8 +42,12 @@ public class PolyDeckEngine {
             System.err.println("Error detectat, intentant importar dades: " + e.getMessage());
             ImportadorCartes.importar("cartes.txt", em);
         } finally {
-            if (em.isOpen()) em.close();
-            if (emf.isOpen()) emf.close();
+            if (em.isOpen()) {
+                em.close();
+            }
+            if (emf.isOpen()) {
+                emf.close();
+            }
             System.out.println("\n>>> Motor aturat i recursos alliberats.");
         }
     }
@@ -69,19 +73,36 @@ public class PolyDeckEngine {
             Mazo m = new Mazo("Mazo Foc", LocalDate.now());
             
             List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class).setMaxResults(2).getResultList();
+
+            // Assegura't que la consulta troba criatures
+            List<Carta> criatures = em.createQuery("SELECT c FROM Criatura c", Carta.class)
+                    .setMaxResults(2).getResultList();
+
+            if (criatures.isEmpty()) {
+                System.out.println("Alerta: No s'han trobat criatures per afegir al mazo.");
+            }
+
             m.getCartes().addAll(criatures);
-            
             j.getMazos().add(m);
             em.persist(j); 
+
+            em.persist(j);
             em.getTransaction().commit();
+            System.out.println("Fet: Jugador creat correctament.");
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("Error creant el jugador: " + e.getMessage());
+            e.printStackTrace(); // Això t'ensenyarà la línia exacta de l'error
         }
     }
 
     private static void ejecutarConsultes(EntityManager em) {
         System.out.println("\n[TASCA B] Consultes JPQL:");
         
+
+        // B1: Polimòrfica
         System.out.println("- Criatures voladores (Cost Negre > 1):");
         ConsultesDAO.buscarCriaturesVoladoresNegres(em, 1).forEach(c -> System.out.println("  * " + c.getNom()));
 
@@ -100,6 +121,9 @@ public class PolyDeckEngine {
             c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING"); 
         }
         em.getTransaction().commit(); 
+        c.setDescripcio("DESCRIPCIÓ MODIFICADA PER DIRTY CHECKING");
+        // No fem em.persist()! 
+        em.getTransaction().commit();
         System.out.println("Fet: Canvi guardat automàticament per estar en estat Managed.");
     }
 
@@ -134,6 +158,31 @@ public class PolyDeckEngine {
         } catch (NoResultException e) {
             System.out.println("No s'ha trobat el jugador AlexDAM.");
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            // En lloc de getSingleResult (que peta si no hi ha res), usem una llista
+            TypedQuery<Jugador> q = em.createQuery("SELECT j FROM Jugador j WHERE j.nick = 'AlexDAM'", Jugador.class);
+            List<Jugador> resultats = q.getResultList();
+
+            if (resultats.isEmpty()) {
+                System.out.println("Error: No s'ha trobat el jugador 'AlexDAM' a la base de dades.");
+                return;
+            }
+
+            em.getTransaction().begin();
+            Jugador j = resultats.get(0);
+
+            if (!j.getMazos().isEmpty()) {
+                // L'Orphan Removal s'activa en treure l'objecte de la llista gestionada
+                j.getMazos().remove(0);
+                System.out.println("Fet: Mazo eliminat de la BD automàticament (Orphan Removal).");
+            } else {
+                System.out.println("El jugador no té mazos per eliminar.");
+            }
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("Error en Orphan Removal: " + e.getMessage());
         }
     }
 }
